@@ -26,6 +26,15 @@ interface WorkspaceEngine {
 
     suspend fun renameFile(path: String, newName: String): String
 
+    /**
+     * Moves (and/or renames) one FILE to a new path, creating missing folders. Byte-for-byte, so
+     * images and other binaries survive. Never overwrites: throws if [to] already exists.
+     */
+    suspend fun moveFile(from: String, to: String): String
+
+    /** Deletes a directory ONLY if it has nothing in it; throws otherwise. Used by cleanup. */
+    suspend fun deleteEmptyDirectory(path: String): String
+
     /** Text tree listing, used as the tool result fed back to the model. */
     suspend fun listFilesAsText(path: String = ""): String
 

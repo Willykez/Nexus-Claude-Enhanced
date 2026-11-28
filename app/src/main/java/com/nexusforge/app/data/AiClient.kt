@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
  */
 class AiClient(private val config: ProviderConfig) {
 
-    private val normalizedBaseUrl = config.baseUrl.trim().trimEnd('/')
+    private val normalizedBaseUrl = GeminiCompat.normalizeBaseUrl(config.baseUrl.trim().trimEnd('/'))
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)

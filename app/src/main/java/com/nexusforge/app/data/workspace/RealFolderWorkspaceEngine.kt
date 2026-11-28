@@ -118,6 +118,39 @@ class RealFolderWorkspaceEngine(
         "Renamed $path to $newName"
     }
 
+    override suspend fun moveFile(from: String, to: String): String = withContext(Dispatchers.IO) {
+        val source = findDocument(from) ?: throw WorkspaceEngine.WorkspaceException("File not found: $from")
+        if (!source.isFile) throw WorkspaceEngine.WorkspaceException("Not a file: $from")
+        if (findDocument(to) != null) throw WorkspaceEngine.WorkspaceException("$to already exists")
+        val parts = segments(to)
+        require(parts.isNotEmpty()) { "Path cannot be empty" }
+        val parent = resolveParentDir(root(), parts.dropLast(1), createMissing = true)
+        val created = parent.createFile(genericMime, parts.last())
+            ?: throw WorkspaceEngine.WorkspaceException("Could not create $to")
+        try {
+            // Copy raw bytes (not text) so binaries aren't corrupted; delete the original only
+            // after the copy fully succeeded, so a failure can never lose the file.
+            val input = context.contentResolver.openInputStream(source.uri)
+                ?: throw WorkspaceEngine.WorkspaceException("Could not open $from")
+            val output = context.contentResolver.openOutputStream(created.uri, "wt")
+                ?: throw WorkspaceEngine.WorkspaceException("Could not open $to for writing")
+            input.use { i -> output.use { o -> i.copyTo(o, 16 * 1024) } }
+        } catch (e: Exception) {
+            created.delete()
+            throw e
+        }
+        if (!source.delete()) throw WorkspaceEngine.WorkspaceException("Copied to $to but couldn't remove $from")
+        "Moved $from to $to"
+    }
+
+    override suspend fun deleteEmptyDirectory(path: String): String = withContext(Dispatchers.IO) {
+        val doc = findDocument(path) ?: throw WorkspaceEngine.WorkspaceException("Not found: $path")
+        if (!doc.isDirectory) throw WorkspaceEngine.WorkspaceException("Not a folder: $path")
+        if (doc.listFiles().isNotEmpty()) throw WorkspaceEngine.WorkspaceException("$path isn't empty")
+        if (!doc.delete()) throw WorkspaceEngine.WorkspaceException("Couldn't remove $path")
+        "Removed empty folder $path"
+    }
+
     override suspend fun listFilesAsText(path: String): String = withContext(Dispatchers.IO) {
         val start = findDocument(path) ?: throw WorkspaceEngine.WorkspaceException("Not found: $path")
         val lines = mutableListOf<String>()

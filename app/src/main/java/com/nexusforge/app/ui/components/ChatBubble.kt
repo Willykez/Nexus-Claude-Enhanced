@@ -115,11 +115,10 @@ fun UserBubble(text: String, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp)
 
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val availableWidth = this.maxWidth
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Box(
                 Modifier
-                    .widthIn(max = if (hasCode) availableWidth else availableWidth * 0.88f)
+                    .widthIn(max = if (hasCode) maxWidth else maxWidth * 0.88f)
                     .then(if (hasCode) Modifier.fillMaxWidth() else Modifier)
                     .clip(shape)
                     .background(Brush.linearGradient(listOf(primary.copy(alpha = 0.20f), primary.copy(alpha = 0.09f))))

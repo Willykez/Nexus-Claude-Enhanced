@@ -193,14 +193,12 @@ fun ChatScreen(
                     item(key = "bottom") { Spacer(Modifier.height(1.dp)) }
                 }
 
-                Column(
+                AnimatedVisibility(
+                    visible = !atBottom && !follow,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp)
                 ) {
-                    AnimatedVisibility(
-                        visible = !atBottom && !follow,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -217,7 +215,6 @@ fun ChatScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.Default.ArrowDownward, contentDescription = "Jump to latest", modifier = Modifier.size(18.dp))
                         }
-                }
                     }
                 }
             }

@@ -410,6 +410,32 @@ private fun FullCode(code: String, language: String?, palette: CodePalette, line
     }
 }
 
+/**
+ * A whole file, highlighted, with line numbers and horizontal scrolling. Meant to sit inside a
+ * parent that scrolls vertically (the file preview). Very long files are cut so a huge file
+ * can't freeze the UI.
+ */
+@Composable
+fun CodeViewer(code: String, language: String?, modifier: Modifier = Modifier) {
+    val palette = rememberCodePalette()
+    val limit = 3000
+    val total = remember(code) { countLines(code) }
+    val shown = remember(code) { if (total > limit) firstLines(code, limit) else code }
+    Column(modifier) {
+        Box(Modifier.fillMaxWidth()) {
+            FullCode(shown, language, palette, minOf(total, limit).coerceAtLeast(1), scrollable = false)
+        }
+        if (total > limit) {
+            Text(
+                "Showing the first $limit of $total lines",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(12.dp)
+            )
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Small pieces
 // ---------------------------------------------------------------------------------------------

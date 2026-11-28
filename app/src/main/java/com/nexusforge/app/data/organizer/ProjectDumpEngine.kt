@@ -50,7 +50,8 @@ class ProjectDumpEngine(private val providerConfig: ProviderConfig) {
             ChatMessage(role = "system", content = prompt),
             ChatMessage(role = "user", content = rawDump)
         )
-        val request = ChatRequest(model = providerConfig.model, messages = messages, tools = null, stream = true, maxTokens = 16384)
+        val request = ChatRequest(model = providerConfig.model, messages = messages, tools = null, stream = true, maxTokens = 16384,
+            reasoningEffort = com.nexusforge.app.data.GeminiCompat.reasoningEffort(providerConfig))
 
         val text = StringBuilder()
         try {

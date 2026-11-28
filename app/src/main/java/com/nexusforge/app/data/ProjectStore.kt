@@ -29,8 +29,9 @@ class ProjectStore(private val context: Context) {
         synchronized(lock) { readAll() }.find { it.id == id }
     }
 
-    suspend fun createSandbox(name: String): Project = withContext(Dispatchers.IO) {
+    suspend fun createSandbox(name: String, template: String? = null): Project = withContext(Dispatchers.IO) {
         val project = Project(
+            template = template,
             id = UUID.randomUUID().toString(),
             name = name.trim().ifBlank { "New sandbox" },
             source = ProjectSource.Sandbox(UUID.randomUUID().toString()),
@@ -56,6 +57,22 @@ class ProjectStore(private val context: Context) {
         )
         synchronized(lock) { writeAll(readAll() + project) }
         project
+    }
+
+    /** Cached type + counts for the Workspace list. Only writes when something actually changed. */
+    suspend fun updateInfo(id: String, kind: String, fileCount: Int, folderCount: Int) = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            val all = readAll()
+            val current = all.find { it.id == id } ?: return@synchronized
+            if (current.kind == kind && current.fileCount == fileCount && current.folderCount == folderCount) return@synchronized
+            writeAll(all.map { if (it.id == id) it.copy(kind = kind, fileCount = fileCount, folderCount = folderCount) else it })
+        }
+    }
+
+    suspend fun markModified(id: String) = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            writeAll(readAll().map { if (it.id == id) it.copy(modifiedAt = System.currentTimeMillis()) else it })
+        }
     }
 
     suspend fun touch(id: String): Project? = withContext(Dispatchers.IO) { touchInternal(id) }

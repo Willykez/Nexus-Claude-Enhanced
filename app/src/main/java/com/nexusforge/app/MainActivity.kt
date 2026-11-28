@@ -58,6 +58,10 @@ import com.nexusforge.app.data.AppTab
 import com.nexusforge.app.data.SettingsStore
 import com.nexusforge.app.data.ThemeMode
 import com.nexusforge.app.ui.components.FileTreeBottomSheet
+import com.nexusforge.app.ui.components.NewProjectSheet
+import com.nexusforge.app.data.organizer.WizardPhase
+import com.nexusforge.app.ui.screens.OrganizerActions
+import com.nexusforge.app.viewmodel.AppUiState
 import com.nexusforge.app.ui.components.HistorySidebarContent
 import com.nexusforge.app.ui.components.ProjectPickerSheet
 import com.nexusforge.app.ui.components.ProviderFormDialog
@@ -134,6 +138,12 @@ private fun NexusForgeApp(viewModel: AppViewModel) {
     // require a confirming second press to actually exit from Chat.
     if (drawerState.isOpen) {
         BackHandler { scope.launch { drawerState.close() } }
+    } else if (state.currentTab == AppTab.WORKSPACE && state.browseProject != null) {
+        // Inside a project folder: back closes the open file first, then the folder.
+        BackHandler { if (state.selectedFile != null) viewModel.closeFilePreview() else viewModel.closeProjectInWorkspace() }
+    } else if (state.currentTab == AppTab.ORGANIZER && state.wizard.phase in setOf(WizardPhase.INTRO, WizardPhase.STEP, WizardPhase.REVIEW)) {
+        // Mid-wizard: back steps backwards (and leaves the wizard from the first screen).
+        BackHandler { if (state.wizard.phase == WizardPhase.INTRO) viewModel.closeWizard() else viewModel.wizardBack() }
     } else if (state.currentTab != AppTab.CHAT) {
         BackHandler { viewModel.selectTab(AppTab.CHAT) }
     } else {
@@ -179,7 +189,8 @@ private fun NexusForgeApp(viewModel: AppViewModel) {
                 onNewChat = { viewModel.newChat(); viewModel.selectTab(AppTab.CHAT); scope.launch { drawerState.close() } },
                 onOpenSession = { id -> viewModel.loadSession(id); scope.launch { drawerState.close() } },
                 onDeleteSession = viewModel::deleteSession,
-                onOpenSettings = { viewModel.selectTab(AppTab.SETTINGS); scope.launch { drawerState.close() } }
+                onOpenSettings = { viewModel.selectTab(AppTab.SETTINGS); scope.launch { drawerState.close() } },
+                activeSessionId = state.sessionId
             )
         }
     ) {
@@ -247,15 +258,7 @@ private fun NexusForgeApp(viewModel: AppViewModel) {
                             )
                         }
                         Row(Modifier.weight(0.42f)) {
-                            WorkspaceScreen(
-                                state = state,
-                                onRefresh = viewModel::refreshWorkspace,
-                                onOpenFile = viewModel::openFile,
-                                onClosePreview = viewModel::closeFilePreview,
-                                onRename = viewModel::renameFile,
-                                onDelete = viewModel::deleteFile,
-                                onZip = viewModel::zipWorkspace
-                            )
+                            WorkspaceHost(state, viewModel) { folderPicker.launch(null) }
                         }
                     }
                 } else {
@@ -267,23 +270,11 @@ private fun NexusForgeApp(viewModel: AppViewModel) {
                                 onOpenProviderPicker = viewModel::openProviderPicker,
                                 onOpenFileTree = viewModel::openFileTreeSheet
                             )
-                            AppTab.WORKSPACE -> WorkspaceScreen(
-                                state = state,
-                                onRefresh = viewModel::refreshWorkspace,
-                                onOpenFile = viewModel::openFile,
-                                onClosePreview = viewModel::closeFilePreview,
-                                onRename = viewModel::renameFile,
-                                onDelete = viewModel::deleteFile,
-                                onZip = viewModel::zipWorkspace
-                            )
-                            AppTab.ORGANIZER -> OrganizerScreen(
-                                log = state.organizerLog, phase = state.organizerPhase,
-                                thinkingChars = state.organizerThinkingChars, resultSummary = state.organizerResultSummary,
-                                isRunning = state.organizerRunning,
-                                onOrganize = viewModel::organizeDump, onViewWorkspace = { viewModel.selectTab(AppTab.WORKSPACE) }
-                            )
+                            AppTab.WORKSPACE -> WorkspaceHost(state, viewModel) { folderPicker.launch(null) }
+                            AppTab.ORGANIZER -> OrganizerHost(state, viewModel)
                             AppTab.HISTORY -> HistoryScreen(
-                                sessions = state.sessionSummaries, onOpen = viewModel::loadSession, onDelete = viewModel::deleteSession
+                                sessions = state.sessionSummaries, onOpen = viewModel::loadSession, onDelete = viewModel::deleteSession,
+                                activeSessionId = state.sessionId
                             )
                             AppTab.SETTINGS -> SettingsScreen(
                                 settings = state.settings,
@@ -319,6 +310,13 @@ private fun NexusForgeApp(viewModel: AppViewModel) {
         )
     }
 
+    if (state.showNewProject) {
+        NewProjectSheet(
+            onCreate = { name, template -> viewModel.createProjectFromTemplate(name, template) },
+            onDismiss = viewModel::dismissNewProject
+        )
+    }
+
     if (state.showProviderPicker) {
         ProviderPickerSheet(
             profiles = state.providerProfiles,
@@ -346,4 +344,50 @@ private fun NexusForgeApp(viewModel: AppViewModel) {
             onDismiss = viewModel::dismissFileTreeSheet
         )
     }
+}
+
+
+/** Connects the Workspace screen to the view model. */
+@Composable
+private fun WorkspaceHost(state: AppUiState, viewModel: AppViewModel, onAttachFolder: () -> Unit) {
+    WorkspaceScreen(
+        state = state,
+        onOpenProject = viewModel::openProjectInWorkspace,
+        onCloseProject = viewModel::closeProjectInWorkspace,
+        onUseInChat = { project -> viewModel.selectProject(project) },
+        onOrganize = { project -> viewModel.selectOrganizerProject(project); viewModel.selectTab(AppTab.ORGANIZER) },
+        onNewProject = viewModel::openNewProject,
+        onAttachFolder = onAttachFolder,
+        onRenameProject = viewModel::renameProject,
+        onDeleteProject = viewModel::deleteProject,
+        onRefresh = viewModel::refreshBrowse,
+        onOpenFile = viewModel::openFile,
+        onClosePreview = viewModel::closeFilePreview,
+        onRename = viewModel::renameFile,
+        onDelete = viewModel::deleteFile,
+        onZip = viewModel::zipWorkspace
+    )
+}
+
+/** Connects the Organizer screen (overview, Cleanup Wizard, import) to the view model. */
+@Composable
+private fun OrganizerHost(state: AppUiState, viewModel: AppViewModel) {
+    OrganizerScreen(
+        state = state,
+        actions = OrganizerActions(
+            selectProject = viewModel::selectOrganizerProject,
+            rescan = viewModel::analyzeOrganizerProject,
+            aiReview = viewModel::runAiReview,
+            startWizard = viewModel::startWizard,
+            wizardBegin = viewModel::wizardBegin,
+            wizardDecide = viewModel::wizardDecide,
+            wizardBack = viewModel::wizardBack,
+            wizardToggle = viewModel::wizardToggle,
+            closeWizard = viewModel::closeWizard,
+            applyWizard = viewModel::applyWizard,
+            undo = viewModel::undoCleanup,
+            importDump = viewModel::organizeDump,
+            viewWorkspace = { project -> viewModel.openProjectInWorkspace(project); viewModel.selectTab(AppTab.WORKSPACE) }
+        )
+    )
 }

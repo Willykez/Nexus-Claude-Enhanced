@@ -20,7 +20,9 @@ data class ChatMessage(
 data class ToolCall(
     val id: String,
     val type: String = "function",
-    val function: FunctionCall
+    val function: FunctionCall,
+    /** Provider-specific payload that must be echoed back verbatim (Gemini's thought_signature). */
+    @SerialName("extra_content") val extraContent: JsonObject? = null
 )
 
 @Serializable
@@ -34,7 +36,9 @@ data class ChatRequest(
     @SerialName("tool_choice") val toolChoice: String? = if (tools.isNullOrEmpty()) null else "auto",
     val stream: Boolean = true,
     val temperature: Double = 0.2,
-    @SerialName("max_tokens") val maxTokens: Int = 8192
+    @SerialName("max_tokens") val maxTokens: Int = 8192,
+    /** Gemini 3+/4+ thinking level (see GeminiCompat); null for every other provider. */
+    @SerialName("reasoning_effort") val reasoningEffort: String? = null
 )
 
 @Serializable
@@ -65,7 +69,8 @@ data class ChunkToolCall(
     val index: Int = 0,
     val id: String? = null,
     val type: String? = null,
-    val function: ChunkFunctionCall? = null
+    val function: ChunkFunctionCall? = null,
+    @SerialName("extra_content") val extraContent: JsonObject? = null
 )
 
 @Serializable
@@ -170,8 +175,19 @@ data class Project(
     val name: String,
     val source: ProjectSource,
     val createdAt: Long,
-    val lastUsedAt: Long
-)
+    val lastUsedAt: Long,
+    /** Last time the project's FILES changed through the app (agent, cleanup, import, template). */
+    val modifiedAt: Long = 0L,
+    /** ProjectKind name, cached so the Workspace list can show type icons without scanning. */
+    val kind: String = "",
+    val fileCount: Int = 0,
+    val folderCount: Int = 0,
+    /** Template id this project was scaffolded from, if any. */
+    val template: String? = null
+) {
+    /** What "last modified" means everywhere in the UI. */
+    val lastModified: Long get() = if (modifiedAt > 0) modifiedAt else createdAt
+}
 
 data class ProviderConfig(
     val baseUrl: String = "https://api.openai.com/v1",

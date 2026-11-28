@@ -91,6 +91,27 @@ class SandboxWorkspaceEngine(context: Context, projectId: String) : WorkspaceEng
         "Renamed $path to $newName"
     }
 
+    override suspend fun moveFile(from: String, to: String): String = withContext(Dispatchers.IO) {
+        val source = safe(from)
+        val target = safe(to)
+        if (!source.isFile) throw WorkspaceEngine.WorkspaceException("File not found: $from")
+        if (target.exists()) throw WorkspaceEngine.WorkspaceException("$to already exists")
+        target.parentFile?.mkdirs()
+        if (!source.renameTo(target)) {
+            source.copyTo(target, overwrite = false)
+            if (!source.delete()) throw WorkspaceEngine.WorkspaceException("Copied $from but couldn't remove the original")
+        }
+        "Moved $from to $to"
+    }
+
+    override suspend fun deleteEmptyDirectory(path: String): String = withContext(Dispatchers.IO) {
+        val dir = safe(path)
+        if (!dir.isDirectory) throw WorkspaceEngine.WorkspaceException("Not a folder: $path")
+        if (!dir.list().isNullOrEmpty()) throw WorkspaceEngine.WorkspaceException("$path isn't empty")
+        if (!dir.delete()) throw WorkspaceEngine.WorkspaceException("Couldn't remove $path")
+        "Removed empty folder $path"
+    }
+
     override suspend fun listFilesAsText(path: String): String = withContext(Dispatchers.IO) {
         val dir = safe(path, allowRoot = true)
         if (!dir.isDirectory) throw WorkspaceEngine.WorkspaceException("Not a directory: $path")

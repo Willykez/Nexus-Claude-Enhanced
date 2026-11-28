@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- The "N", kept inside the 66dp adaptive-icon safe zone. -->
+    <path android:pathData="M36,38 L46,38 L58,58 L58,38 L66,38 L66,74 L56,74 L44,54 L44,74 L36,74 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="36"
+                android:startY="38"
+                android:endX="66"
+                android:endY="74"
+                android:type="linear">
+                <item android:offset="0" android:color="#FFFFB35C" />
+                <item android:offset="1" android:color="#FFF97316" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- The spark. -->
+    <path
+        android:fillColor="#FFFFE2B8"
+        android:pathData="M74,28 L76,33 L81,35 L76,37 L74,42 L72,37 L67,35 L72,33 Z" />
+</vector>

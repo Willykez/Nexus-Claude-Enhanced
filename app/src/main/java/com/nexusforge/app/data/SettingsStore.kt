@@ -94,7 +94,7 @@ class SettingsStore(private val context: Context) {
         /** Presets shown as tappable chips when adding a provider — a shortcut, never a requirement. */
         val PRESETS = listOf(
             Triple("OpenAI", "https://api.openai.com/v1", "gpt-4o-mini"),
-            Triple("Gemini (OpenAI shim)", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-1.5-flash"),
+            Triple("Gemini (OpenAI shim)", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.5-flash-lite"),
             Triple("DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat"),
             Triple("Ollama (local)", "http://10.0.2.2:11434/v1", "llama3.1")
         )
