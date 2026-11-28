@@ -106,7 +106,7 @@ class OrganizerActions(
  */
 @Composable
 fun OrganizerScreen(state: AppUiState, actions: OrganizerActions) {
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+    var tab by rememberSaveable { mutableStateOf(0) }
     val project = state.projects.find { it.id == state.organizerProjectId } ?: state.activeProject
 
     LaunchedEffect(state.wizard.phase) { if (state.wizard.phase != WizardPhase.CLOSED) tab = 1 }

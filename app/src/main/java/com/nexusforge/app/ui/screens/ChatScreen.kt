@@ -1,8 +1,5 @@
 package com.nexusforge.app.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.clickable
@@ -193,18 +190,17 @@ fun ChatScreen(
                     item(key = "bottom") { Spacer(Modifier.height(1.dp)) }
                 }
 
-                AnimatedVisibility(
-                    visible = !atBottom && !follow,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp)
-                ) {
+                // A plain `if`, not AnimatedVisibility: inside a Box that is itself inside a Column,
+                // AnimatedVisibility resolves to the Column-scoped overload and fails to compile.
+                if (!atBottom && !follow) {
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         shadowElevation = 4.dp,
                         modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 12.dp)
                             .size(38.dp)
                             .clip(CircleShape)
                             .clickable {
